@@ -25,7 +25,7 @@ import logging
 import json
 import collections
 
-from shadowsocks import common, eventloop, tcprelay, udprelay, asyncdns, shell
+from shadowsocks import common, eventloop, tcprelay, asyncdns, shell
 
 
 BUF_SIZE = 1506
@@ -36,7 +36,7 @@ class Manager(object):
 
     def __init__(self, config):
         self._config = config
-        self._relays = {}  # (tcprelay, udprelay)
+        self._relays = {}  # (tcprelay)
         self._loop = eventloop.EventLoop()
         self._dns_resolver = asyncdns.DNSResolver()
         self._dns_resolver.add_to_loop(self._loop)
@@ -88,11 +88,8 @@ class Manager(object):
         logging.info("adding server at %s:%d" % (config['server'], port))
         t = tcprelay.TCPRelay(config, self._dns_resolver, False,
                               self.stat_callback)
-        u = udprelay.UDPRelay(config, self._dns_resolver, False,
-                              self.stat_callback)
         t.add_to_loop(self._loop)
-        u.add_to_loop(self._loop)
-        self._relays[port] = (t, u)
+        self._relays[port] = (t)
 
     def remove_port(self, config):
         port = int(config['server_port'])
@@ -166,7 +163,6 @@ class Manager(object):
         for k, v in self._statistics.items():
             r[k] = v
             i += 1
-            # split the data into segments that fit in UDP packets
             if i >= STAT_SEND_LIMIT:
                 send_data(r)
                 r.clear()
